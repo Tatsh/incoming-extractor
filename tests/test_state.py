@@ -13,10 +13,13 @@ if TYPE_CHECKING:
 _MISSION_SIZE = 0x81a30
 _LEVEL_SIZE = 0x81a24
 _CFG_TOTAL = 10980
+_CFG_INPUT_AXIS_OFFSET = 32
+_CFG_CAMERA_OFFSET = 256
 _CFG_KEYBIND_OFFSET = 868
 _CFG_FORCE_FEEDBACK_OFFSET = 1028
 _CFG_HIGH_SCORE_OFFSET = 1582
 _CFG_HIGH_SCORE_SIZE = 8932
+_CFG_INPUT_STATE_OFFSET = 10514
 _CFG_OPTIONS_OFFSET = 10626
 _CFG_CHECKSUM_OFFSET = 10646
 
@@ -139,6 +142,20 @@ def test_cfg_unexpected_size(tmp_path: Path) -> None:
     obj = _load(cfg_to_json(source, tmp_path))
     assert 'blocks' not in obj
     assert obj['raw'] == [0, 0x72, 0x65, 0x73, 0x74]
+
+
+def test_cfg_subfield_blocks(tmp_path: Path) -> None:
+    data = _build_cfg()
+    struct.pack_into('<I', data, _CFG_INPUT_AXIS_OFFSET + 0x10, 100)  # dwMusicVolumeIndex
+    struct.pack_into('<f', data, _CFG_CAMERA_OFFSET, 2.0)  # flCameraPosX
+    data[_CFG_INPUT_STATE_OFFSET + 0x54:_CFG_INPUT_STATE_OFFSET + 0x58] = b'HOST'
+    source = tmp_path / 'sub.cfg'
+    source.write_bytes(data)
+    blocks = _load(cfg_to_json(source, tmp_path))['blocks']
+    assert blocks['inputAxisOptions']['dwMusicVolumeIndex'] == 100
+    assert blocks['cameraState']['flCameraPosX'] == pytest.approx(2.0)
+    assert blocks['inputStateBlock']['szNetSessionName'] == 'HOST'
+    assert blocks['joystickAxisBind']['anJoystickAxisBind'] == [0] * 12
 
 
 def test_cfg_special_keybinds_and_full_high_score(tmp_path: Path) -> None:

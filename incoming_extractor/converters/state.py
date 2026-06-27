@@ -190,6 +190,113 @@ _DIK_KEY_NAMES = {
     0xd3: 'Delete'
 }
 
+# Field sub-tables for the cfg blocks that are runs of named globals (offset, name, format, count);
+# decoded with the same machinery as the snapshot region. Derived from incoming.exe.
+_INPUT_AXIS_OPTIONS_FIELDS: tuple[tuple[int, str, str, int], ...] = (
+    (0x00, 'bInvertAxisX2', 'B', 1),
+    (0x01, 'bControlConfigFlag61', 'B', 1),
+    (0x04, 'dwInvertAxisY2', 'I', 1),
+    (0x08, 'dwInvertAxisX3', 'I', 1),
+    (0x0c, 'dwInvertAxisY3', 'I', 1),
+    (0x10, 'dwMusicVolumeIndex', 'I', 1),
+    (0x14, 'dwForceTerrainDraw', 'I', 1),
+    (0x18, 'flMouseSensitivityX', 'f', 1),
+    (0x1c, 'flMouseSensitivityY', 'f', 1),
+    (0x20, 'dwForceFeedbackEnabled', 'I', 1),
+    (0x24, 'dwControlConfig84', 'I', 1),
+    (0x28, 'dwControlConfig88', 'I', 1),
+    (0x2c, 'dwControlConfig8c', 'I', 1),
+    (0x30, 'adControlModeTable', 'i', 16),
+    (0x70, 'nControlConfigPage', 'i', 1),
+    (0x74, 'nNetGameTypeMenuSelection', 'i', 1),
+    (0x78, 'nNetSessionMenuSelection', 'i', 1),
+    (0x7c, 'nModeMenuSelection', 'i', 1),
+    (0x80, 'nMissionSetupSelection', 'i', 1),
+    (0x84, 'bHighScoreEntryRegionByte', 'B', 1),
+    (0x88, 'dwDefaultReplaySync', 'I', 1),
+    (0x8c, 'dwUseObjectSpaceTransform', 'I', 1),
+    (0x90, 'dwHasActiveEffectSlots', 'I', 1),
+    (0x94, 'dwReplayFinished', 'I', 1),
+    (0x98, 'dwLastInputCodeA', 'I', 1),
+    (0x9c, 'dwLastInputCodeB', 'I', 1),
+    (0xa0, 'dwRenderTerrainEnable', 'I', 1),
+    (0xa4, 'dwDetailFlagA', 'I', 1),
+    (0xa8, 'dwDetailFlagB', 'I', 1),
+    (0xac, 'dwLowTextureDetail', 'I', 1),
+    (0xb0, 'dwRenderFeatureFlag2', 'I', 1),
+    (0xb4, 'dwShadowProjectConfig', 'I', 1),
+    (0xb8, 'dwInputWindowReady', 'I', 1),
+    (0xbc, 'dwRenderFeatureFlag4', 'I', 1),
+    (0xc0, 'dwHudColorTarget', 'I', 1),
+    (0xc4, 'dwControlConfigB24', 'I', 1),
+    (0xc8, 'dwViewTurnRateDeg', 'I', 1),
+    (0xcc, 'dwReplaySyncFlag', 'I', 1),
+    (0xd0, 'dwSessionElapsedLo', 'I', 1),
+    (0xd4, 'dwSessionElapsedHi', 'I', 1),
+    (0xd8, 'dwMissionElapsedLo', 'I', 1),
+    (0xdc, 'dwMissionElapsedHi', 'I', 1),
+)
+_CAMERA_STATE_FIELDS: tuple[tuple[int, str, str, int], ...] = (
+    (0x00, 'flCameraPosX', 'f', 1),
+    (0x04, 'flCameraPosY', 'f', 1),
+    (0x08, 'flCameraPosZ', 'f', 1),
+    (0x0c, 'flCameraTargetX', 'f', 1),
+    (0x10, 'flCameraDefaultY', 'f', 1),
+    (0x14, 'flCameraTargetZ', 'f', 1),
+    (0x18, 'flCameraEyeX', 'f', 1),
+    (0x1c, 'flCameraEyeY', 'f', 1),
+    (0x20, 'flCameraEyeZ', 'f', 1),
+    (0x24, 'flCameraLookAtX', 'f', 1),
+    (0x28, 'flCameraLookAtY', 'f', 1),
+    (0x2c, 'flCameraLookAtZ', 'f', 1),
+    (0x30, 'flCameraYaw', 'f', 1),
+    (0x34, 'flCameraPitch', 'f', 1),
+    (0x3c, 'dwViewRenderMode', 'I', 1),
+    (0x40, 'nReticleLockState', 'i', 1),
+    (0x44, 'dwCameraFollowMode', 'I', 1),
+    (0x48, 'dwGlobalStateFlags', 'I', 1),
+    (0x4c, 'apLockedTargetObjects', 'I', 32),
+    (0xcc, 'pReticleStateObject', 'I', 1),
+    (0xd0, 'pReplayTrackedHumanObject', 'I', 1),
+    (0xd4, 'pReplayTrackedFlag400Object', 'I', 1),
+    (0xd8, 'dwReticleBlinkActive', 'I', 1),
+    (0xdc, 'pReplayCameraObject', 'I', 1),
+    (0xe0, 'pSavedReplayCameraObject', 'I', 1),
+)
+_JOYSTICK_AXIS_BIND_FIELDS: tuple[tuple[int, str, str, int], ...] = (
+    (0x00, 'anJoystickAxisBind', 'i', 12),
+    (0xb0, 'abExtendedInputState', 'B', 208),
+)
+_INPUT_STATE_BLOCK_FIELDS: tuple[tuple[int, str, str, int], ...] = (
+    (0x00, 'adInputStateBlock', 'i', 2),
+    (0x08, 'dwAnalogAxisLo', 'I', 1),
+    (0x0c, 'dwAnalogAxisHi', 'I', 1),
+    (0x10, 'adReplayNextInputIndex', 'i', 2),
+    (0x18, 'nScoreEntryScrollB', 'i', 1),
+    (0x1c, 'nScoreEntryScrollA', 'i', 1),
+    (0x20, 'dwHudInfoLineCount', 'I', 1),
+    (0x24, 'dwHudInfoColor', 'I', 1),
+    (0x28, 'nSelectedCraftIndex', 'i', 1),
+    (0x2c, 'nSelectedColorScheme', 'i', 1),
+    (0x30, 'nMissionTimeLimitMinutes', 'i', 1),
+    (0x34, 'dwNetGameFlags', 'I', 1),
+    (0x38, 'dwSavedNetGameFlags', 'I', 1),
+    (0x3c, 'dwGameSessionFlags', 'I', 1),
+    (0x40, 'dwOnVictoryValue', 'I', 1),
+    (0x44, 'dwOnFailureValue', 'I', 1),
+    (0x48, 'dwNetControlFlags', 'I', 1),
+    (0x4c, 'dwControlAuthorityMode', 'I', 1),
+    (0x50, 'dwDefaultControlMode', 'I', 1),
+    (0x54, 'szNetSessionName', 'str', 9),
+    (0x5d, 'szNetPlayerName', 'str', 19),
+)
+_CFG_SUBFIELDS = {
+    'inputAxisOptions': _INPUT_AXIS_OPTIONS_FIELDS,
+    'cameraState': _CAMERA_STATE_FIELDS,
+    'joystickAxisBind': _JOYSTICK_AXIS_BIND_FIELDS,
+    'inputStateBlock': _INPUT_STATE_BLOCK_FIELDS,
+}
+
 # Field table for the mission/level snapshot region, derived from the named globals of incoming.exe
 # in [g_nCurrentMissionId, g_nCurrentMissionId + 0x81a30). Each entry is (offset, name, format,
 # count) where format is a struct character ('i', 'I', 'f', 'H', 'h', 'B'). Run-time pointer fields
@@ -495,6 +602,8 @@ def _write_json(source: Path, dest_dir: Path, obj: dict[str, Any]) -> Path:
 
 
 def _unpack(data: bytes, pos: int, fmt: str, count: int) -> Any:
+    if fmt == 'str':
+        return data[pos:pos + count].split(b'\x00', 1)[0].decode('latin-1')
     values = struct.unpack_from(f'<{count}{fmt}', data, pos)
     return values[0] if count == 1 else list(values)
 
@@ -517,7 +626,7 @@ def _decode_region(data: bytes, fields: Sequence[tuple[int, str, str, int]],
         key=operator.itemgetter(0))
     cursor = 0
     for pos, name, fmt, count in items:
-        size = _FMT_SIZE[fmt] * count
+        size = _cfg_block_size(fmt, count)
         if pos + size > len(data):
             break
         if pos > cursor:
@@ -714,6 +823,9 @@ def cfg_to_json(source: Path, dest_dir: Path) -> Path:
     blocks['forceFeedbackDevicePresent'] = bool(blocks['forceFeedbackDevicePresent'])
     blocks['keybindOffsets'] = _decode_keybinds(blocks['keybindOffsets'])
     blocks['optionValues'] = _decode_serial_options(blocks['optionValues'])
+    for name, fields in _CFG_SUBFIELDS.items():
+        block_offset, block_size = offsets[name]
+        blocks[name] = _decode_region(data[block_offset:block_offset + block_size], fields, 0)
     check_offset, check_size = offsets[_CFG_CHECKSUM_BLOCK]
     blocks['highScoreTables'] = _decode_high_score_tables(
         data[check_offset:check_offset + check_size])

@@ -78,6 +78,8 @@ It is split into its 21 named blocks, each decoded into a readable value:
   bits, parity, and flow control;
 - the high-score block as a list of tables, each with its category id, sub-index, and nine
   ``{score, name}`` entries;
+- the input-options, camera-state, joystick-binding, and input-state blocks as objects of named
+  fields (the same field-table approach used for the snapshots);
 - the force-feedback flag as a boolean;
 - the checksum as ``{stored, computed, valid}``, where ``computed`` is a signed-byte sum recomputed
   over the high-score block and ``valid`` reports whether the two agree.
