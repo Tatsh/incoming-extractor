@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, NamedTuple
 import logging
 import shutil
 
+from typing_extensions import override
+
 from .context import using_input_root
 from .converters import RULES, ConversionError, UnsupportedFormatError
 
@@ -30,6 +32,7 @@ class ConversionSummary(NamedTuple):
     """Number of matched files whose format is documented but not yet decoded."""
     failed: int
     """Number of matched files that errored during conversion (copied verbatim instead)."""
+    @override
     def __add__(self, other: object) -> ConversionSummary:
         """
         Add two summaries field by field.

@@ -80,7 +80,8 @@ def test_iso_isodump_success(tmp_path: Path, mocker: MockerFixture) -> None:
     mocker.patch('incoming_extractor.sources.which', side_effect=_which({'isodump': '/isodump'}))
 
     def run(args: tuple[str, ...], **kwargs: object) -> object:
-        kwargs['stdout'].write(b'CABDATA')  # type: ignore[attr-defined]
+        kwargs['stdout'].write(  # type: ignore[attr-defined] # ty: ignore[unresolved-attribute]
+            b'CABDATA')
         return mocker.Mock()
 
     mocker.patch('incoming_extractor.sources.sp.run', side_effect=run)
