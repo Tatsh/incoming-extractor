@@ -14,6 +14,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `ian2obj` and `extract-pvr-pack` standalone command-line utilities.
 - `ian2obj` converts Dreamcast `*_M.BIN` model packs in addition to PC `.ian` meshes.
 
+### Changed
+
+- Ported the asset-format reference into the Sphinx documentation under `docs/formats/` and
+  expanded the documentation into separate, well-organised pages.
+
 ## [0.0.1] - 2026-00-00
 
 First version.

@@ -39,6 +39,9 @@ extracted PC or GD-ROM content, this tool mirrors the source tree into an output
 converting the proprietary assets to open formats and copying everything else verbatim. The source
 is never modified.
 
+Full documentation, including a reverse-engineered reference for every asset format, is at
+[incoming-extractor.readthedocs.org](https://incoming-extractor.readthedocs.org/).
+
 ## Usage
 
 ```shell
