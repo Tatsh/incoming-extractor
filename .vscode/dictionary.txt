@@ -44,6 +44,7 @@ filevers
 flathub
 foxundermoon
 functools
+gbix
 gdiextract
 genindex
 globaltoc
@@ -52,6 +53,7 @@ heightfield
 hoverxref
 htmlcov
 ihhiii
+inspectable
 intersphinx
 isodump
 isort
@@ -129,6 +131,7 @@ statusline
 syft
 tatsh
 testpaths
+toctree
 tomlkit
 tomllib
 tomlq
