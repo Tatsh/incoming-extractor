@@ -11,6 +11,12 @@ local utils = import 'utils.libjsonnet';
   publishing+: { flathub: 'sh.tat.incoming-extractor' },
   local top = self,
   pyproject+: {
+    project+: {
+      scripts+: {
+        'extract-pvr-pack': '%s.commands.extract_pvr_pack:extract_pvr_pack' % top.primary_module,
+        ian2obj: '%s.commands.ian2obj:ian2obj' % top.primary_module,
+      },
+    },
     tool+: {
       coverage+: {
         report+: {

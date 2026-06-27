@@ -61,6 +61,18 @@ supported.
 Pass `--gdiextract-path`, `--spvr2png-path`, or `--unshield-path` to point at the native tools when
 they are not on `PATH`, and `--debug` for verbose logging.
 
+## Utilities
+
+Two standalone commands convert a single asset without mirroring a whole source tree:
+
+- `ian2obj MODEL OUTDIR` — convert one model to Wavefront OBJ and MTL. Both the PC `.ian` mesh and
+  the Dreamcast `*_M.BIN` model pack are accepted (the format is detected from the file name); a
+  Dreamcast pack needs its matching `*_ML.BIN` index beside it and yields one OBJ and MTL per object.
+  The texture is resolved from the game root, auto-detected from `MODEL` or set with `--game-root`,
+  unless `--no-texture` is given.
+- `extract-pvr-pack PACK OUTDIR` — unpack a Dreamcast `*_T.PVR` texture pack, writing each texture as
+  a separate `.pvr` file, or as a PNG with `--png` (which requires `spvr2png`).
+
 ## Native tools
 
 Some conversions shell out to native helpers, which must be on `PATH` or supplied with the matching

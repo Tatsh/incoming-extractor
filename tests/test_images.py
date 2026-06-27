@@ -6,7 +6,12 @@ import subprocess as sp
 
 from PIL import Image
 from incoming_extractor.converters import ConversionError
-from incoming_extractor.converters.images import ppm_to_png, pvr_pack_to_png, spvr2png_converter
+from incoming_extractor.converters.images import (
+    ppm_to_png,
+    pvr_pack_to_files,
+    pvr_pack_to_png,
+    spvr2png_converter,
+)
 from incoming_extractor.test_utils import pvr_pack, pvrt_chunk
 import pytest
 
@@ -71,3 +76,19 @@ def test_pvr_pack_to_png_parse_error(tmp_path: Path) -> None:
     source.write_bytes(b'\x00\x00')
     with pytest.raises(ConversionError, match='Failed to parse'):
         pvr_pack_to_png(source, tmp_path)
+
+
+def test_pvr_pack_to_files(tmp_path: Path) -> None:
+    source = tmp_path / 'AFRICA_T.PVR'
+    source.write_bytes(pvr_pack([pvrt_chunk(2, 2), pvrt_chunk(4, 4)]))
+    outputs = pvr_pack_to_files(source, tmp_path)
+    assert len(outputs) == 2
+    assert all(p.suffix == '.pvr' and p.is_file() for p in outputs)
+    assert (tmp_path / 'AFRICA_T').is_dir()
+
+
+def test_pvr_pack_to_files_parse_error(tmp_path: Path) -> None:
+    source = tmp_path / 'x.pvr'
+    source.write_bytes(b'\x00\x00')
+    with pytest.raises(ConversionError, match='Failed to parse'):
+        pvr_pack_to_files(source, tmp_path)

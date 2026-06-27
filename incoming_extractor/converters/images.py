@@ -12,9 +12,49 @@ from incoming_extractor.tools import find_spvr2png
 
 from ._base import ConversionError
 
-__all__ = ('ppm_to_png', 'pvr_pack_to_png', 'spvr2png_converter')
+__all__ = ('ppm_to_png', 'pvr_pack_to_files', 'pvr_pack_to_png', 'spvr2png_converter')
 
 log = logging.getLogger(__name__)
+
+
+def pvr_pack_to_files(source: Path, dest_dir: Path) -> tuple[Path, ...]:
+    """
+    Unpack an Incoming Dreamcast ``*_T.PVR`` texture pack into individual ``.pvr`` files.
+
+    This pack container is Dreamcast-specific. Files are written to a directory named after the pack
+    stem inside *dest_dir*.
+
+    Parameters
+    ----------
+    source : Path
+        The source ``*_T.PVR`` pack file.
+    dest_dir : Path
+        The directory the per-pack directory is created in.
+
+    Returns
+    -------
+    tuple[Path, ...]
+        The written ``.pvr`` paths, in pack order.
+
+    Raises
+    ------
+    ConversionError
+        If the pack cannot be parsed.
+    """
+    try:
+        textures = tuple(iter_pack_textures(source.read_bytes()))
+    except ValueError as e:
+        msg = f'Failed to parse pack `{source}`: {e}'
+        raise ConversionError(msg) from e
+    pack_dir = dest_dir / source.stem
+    pack_dir.mkdir(parents=True, exist_ok=True)
+    written = []
+    for texture in textures:
+        name = f'{source.stem}_{texture.position:03d}_{texture.width}x{texture.height}.pvr'
+        path = pack_dir / name
+        path.write_bytes(texture.data)
+        written.append(path)
+    return tuple(written)
 
 
 def ppm_to_png(source: Path, dest_dir: Path) -> Path:
