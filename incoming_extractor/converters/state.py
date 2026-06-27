@@ -64,6 +64,132 @@ def _cfg_block_size(kind: str, count: int) -> int:
 _CFG_TOTAL = sum(_cfg_block_size(kind, count) for _, kind, count in _CFG_BLOCKS)
 _CFG_CHECKSUM_BLOCK = 'highScoreTables'
 
+# The options block is the serial/modem multiplayer connection settings (from
+# UpdateOptionsMenuScreen @ 0x452148): COM port, baud rate, stop bits, parity, and flow control.
+_CFG_BAUD_RATES = (110, 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 38400, 56000, 57600, 115200,
+                   128000, 256000)
+_CFG_STOP_BITS = ('1', '1.5', '2')
+_CFG_PARITY = ('none', 'odd', 'even', 'mark')
+_CFG_FLOW_CONTROL = ('none', 'xon/xoff', 'rts', 'dtr', 'rts/dtr')
+
+# The keybind block is 4 control-config pages of 10 action slots; each slot holds a DirectInput
+# keyboard scancode (below the special base), or a special input code (at or above it). A 0 slot is
+# unbound (empty name).
+_KEYBIND_PAGES = 4
+_KEYBIND_SLOTS_PER_PAGE = 10
+_KEYBIND_SPECIAL_BASE = 0x100
+
+# Each high-score table record is 29 dwords (116 bytes): 9 entries of {score:u32, name:char[8]} then
+# a category id and a 1-based sub-index. A record whose category id is -1 terminates the arena.
+_HIGH_SCORE_RECORD_SIZE = 116
+_HIGH_SCORE_ENTRY_SIZE = 12
+_HIGH_SCORE_ENTRY_COUNT = 9
+
+# DirectInput keyboard scancodes (DIK_*, i.e. PS/2 set 1) to W3C ``KeyboardEvent.code`` values,
+# used to make the keybind block readable.
+_DIK_KEY_NAMES = {
+    0x01: 'Escape',
+    0x02: 'Digit1',
+    0x03: 'Digit2',
+    0x04: 'Digit3',
+    0x05: 'Digit4',
+    0x06: 'Digit5',
+    0x07: 'Digit6',
+    0x08: 'Digit7',
+    0x09: 'Digit8',
+    0x0a: 'Digit9',
+    0x0b: 'Digit0',
+    0x0c: 'Minus',
+    0x0d: 'Equal',
+    0x0e: 'Backspace',
+    0x0f: 'Tab',
+    0x10: 'KeyQ',
+    0x11: 'KeyW',
+    0x12: 'KeyE',
+    0x13: 'KeyR',
+    0x14: 'KeyT',
+    0x15: 'KeyY',
+    0x16: 'KeyU',
+    0x17: 'KeyI',
+    0x18: 'KeyO',
+    0x19: 'KeyP',
+    0x1a: 'BracketLeft',
+    0x1b: 'BracketRight',
+    0x1c: 'Enter',
+    0x1d: 'ControlLeft',
+    0x1e: 'KeyA',
+    0x1f: 'KeyS',
+    0x20: 'KeyD',
+    0x21: 'KeyF',
+    0x22: 'KeyG',
+    0x23: 'KeyH',
+    0x24: 'KeyJ',
+    0x25: 'KeyK',
+    0x26: 'KeyL',
+    0x27: 'Semicolon',
+    0x28: 'Quote',
+    0x29: 'Backquote',
+    0x2a: 'ShiftLeft',
+    0x2b: 'Backslash',
+    0x2c: 'KeyZ',
+    0x2d: 'KeyX',
+    0x2e: 'KeyC',
+    0x2f: 'KeyV',
+    0x30: 'KeyB',
+    0x31: 'KeyN',
+    0x32: 'KeyM',
+    0x33: 'Comma',
+    0x34: 'Period',
+    0x35: 'Slash',
+    0x36: 'ShiftRight',
+    0x37: 'NumpadMultiply',
+    0x38: 'AltLeft',
+    0x39: 'Space',
+    0x3a: 'CapsLock',
+    0x3b: 'F1',
+    0x3c: 'F2',
+    0x3d: 'F3',
+    0x3e: 'F4',
+    0x3f: 'F5',
+    0x40: 'F6',
+    0x41: 'F7',
+    0x42: 'F8',
+    0x43: 'F9',
+    0x44: 'F10',
+    0x45: 'NumLock',
+    0x46: 'ScrollLock',
+    0x47: 'Numpad7',
+    0x48: 'Numpad8',
+    0x49: 'Numpad9',
+    0x4a: 'NumpadSubtract',
+    0x4b: 'Numpad4',
+    0x4c: 'Numpad5',
+    0x4d: 'Numpad6',
+    0x4e: 'NumpadAdd',
+    0x4f: 'Numpad1',
+    0x50: 'Numpad2',
+    0x51: 'Numpad3',
+    0x52: 'Numpad0',
+    0x53: 'NumpadDecimal',
+    0x57: 'F11',
+    0x58: 'F12',
+    0x9c: 'NumpadEnter',
+    0x9d: 'ControlRight',
+    0xb5: 'NumpadDivide',
+    0xb8: 'AltRight',
+    0xc5: 'Pause',
+    0xc7: 'Home',
+    0xc8: 'ArrowUp',
+    0xc9: 'PageUp',
+    0xcb: 'ArrowLeft',
+    0xcd: 'ArrowRight',
+    0xcf: 'End',
+    0xd0: 'ArrowDown',
+    0xd1: 'PageDown',
+    0xd2: 'Insert',
+    0xd3: 'Delete'
+}
+
 # Field table for the mission/level snapshot region, derived from the named globals of incoming.exe
 # in [g_nCurrentMissionId, g_nCurrentMissionId + 0x81a30). Each entry is (offset, name, format,
 # count) where format is a struct character ('i', 'I', 'f', 'H', 'h', 'B'). Run-time pointer fields
@@ -483,14 +609,72 @@ def lev_to_json(source: Path, dest_dir: Path) -> Path:
                              _LEVEL_SNAPSHOT_SIZE)
 
 
+def _decode_keybind(scancode: int) -> dict[str, Any]:
+    if scancode == 0:
+        name = ''
+    elif scancode >= _KEYBIND_SPECIAL_BASE:
+        name = f'special{scancode - _KEYBIND_SPECIAL_BASE + 1}'
+    else:
+        name = _DIK_KEY_NAMES.get(scancode, f'scancode_{scancode:#04x}')
+    return {'directInputScancode': scancode, 'name': name}
+
+
+def _decode_keybinds(values: Sequence[int]) -> list[list[dict[str, Any]]]:
+    return [[
+        _decode_keybind(values[page * _KEYBIND_SLOTS_PER_PAGE + slot])
+        for slot in range(_KEYBIND_SLOTS_PER_PAGE)
+    ] for page in range(_KEYBIND_PAGES)]
+
+
+def _option_label(options: Sequence[str], index: int) -> str | int:
+    return options[index] if 0 <= index < len(options) else index
+
+
+def _decode_serial_options(values: Sequence[int]) -> dict[str, Any]:
+    com_port, baud, stop_bits, parity, flow_control = values
+    return {
+        'comPort': com_port + 1,
+        'baudRate': _CFG_BAUD_RATES[baud] if 0 <= baud < len(_CFG_BAUD_RATES) else baud,
+        'stopBits': _option_label(_CFG_STOP_BITS, stop_bits),
+        'parity': _option_label(_CFG_PARITY, parity),
+        'flowControl': _option_label(_CFG_FLOW_CONTROL, flow_control),
+    }
+
+
+def _decode_high_score_tables(raw: bytes) -> list[dict[str, Any]]:
+    tables: list[dict[str, Any]] = []
+    for start in range(0, len(raw) - _HIGH_SCORE_RECORD_SIZE + 1, _HIGH_SCORE_RECORD_SIZE):
+        record = raw[start:start + _HIGH_SCORE_RECORD_SIZE]
+        category_id = int.from_bytes(record[108:112], 'little', signed=True)
+        if category_id == -1:
+            break
+        entries = [{
+            'score':
+                int.from_bytes(record[entry:entry + 4], 'little'),
+            'name':
+                record[entry + 4:entry + _HIGH_SCORE_ENTRY_SIZE].split(b'\x00', 1)
+                [0].decode('latin-1'),
+        } for entry in range(0, _HIGH_SCORE_ENTRY_SIZE *
+                             _HIGH_SCORE_ENTRY_COUNT, _HIGH_SCORE_ENTRY_SIZE)]
+        tables.append({
+            'categoryId': category_id,
+            'subIndex': int.from_bytes(record[112:116], 'little', signed=True),
+            'entries': entries,
+        })
+    return tables
+
+
 def cfg_to_json(source: Path, dest_dir: Path) -> Path:
     """
     Convert an Incoming ``.cfg`` configuration file to JSON.
 
     The file (``SaveGameConfigFile``) is a concatenation of fixed-size blocks. Each block is decoded
-    into a typed value: the build stamp and the trailing buffers as text, numeric blocks as arrays,
-    and the high-score checksum as an object that also recomputes and verifies it. Nothing is left
-    as an opaque blob.
+    into a human-readable value: the build stamp and trailing buffers as text; the keybind block as
+    four control-config pages of ten slots, each a DirectInput scancode with its key name; the
+    options block as the serial/modem connection settings (COM port, baud rate, stop bits, parity,
+    and flow control); the high-score block as a list of tables of ``{score, name}`` entries; the
+    force-feedback flag as a boolean; and the checksum as an object that recomputes and verifies it.
+    Nothing is left as an opaque blob.
 
     Parameters
     ----------
@@ -516,20 +700,25 @@ def cfg_to_json(source: Path, dest_dir: Path) -> Path:
         obj['raw'] = _decode_gap(data, 0, len(data))
         return _write_json(source, dest_dir, obj)
     blocks: dict[str, Any] = {}
-    checksum_block_offset = checksum_block_size = 0
+    offsets: dict[str, tuple[int, int]] = {}
     cursor = 0
     for name, kind, count in _CFG_BLOCKS:
         size = _cfg_block_size(kind, count)
-        if name == _CFG_CHECKSUM_BLOCK:
-            checksum_block_offset, checksum_block_size = cursor, size
+        offsets[name] = (cursor, size)
         if kind == 'str':
             blocks[name] = data[cursor:cursor + size].split(b'\x00', 1)[0].decode('latin-1')
         else:
             blocks[name] = _unpack(data, cursor, kind, count)
         cursor += size
+    # Decode specific blocks into human-readable forms.
+    blocks['forceFeedbackDevicePresent'] = bool(blocks['forceFeedbackDevicePresent'])
+    blocks['keybindOffsets'] = _decode_keybinds(blocks['keybindOffsets'])
+    blocks['optionValues'] = _decode_serial_options(blocks['optionValues'])
+    check_offset, check_size = offsets[_CFG_CHECKSUM_BLOCK]
+    blocks['highScoreTables'] = _decode_high_score_tables(
+        data[check_offset:check_offset + check_size])
     stored = blocks['checksum']
-    computed = sum(struct.unpack_from(f'<{checksum_block_size}b', data,
-                                      checksum_block_offset)) & 0xFFFFFFFF
+    computed = sum(struct.unpack_from(f'<{check_size}b', data, check_offset)) & 0xFFFFFFFF
     blocks['checksum'] = {'stored': stored, 'computed': computed, 'valid': stored == computed}
     obj['blocks'] = blocks
     return _write_json(source, dest_dir, obj)

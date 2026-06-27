@@ -36,6 +36,7 @@ doctree
 doctrees
 dreamcast
 dunder
+dwords
 eeyore
 elif
 esac
@@ -65,6 +66,7 @@ jinja
 jsonnet
 jsonschema
 keybind
+keybinds
 kwargs
 lastexitcode
 launchable
@@ -89,6 +91,7 @@ newmtl
 nonexistent
 norecursedirs
 notarytool
+numpad
 numpy
 objfile
 onefile
@@ -117,6 +120,8 @@ pythonhosted
 regen
 ripgreprc
 rstcheck
+scancode
+scancodes
 schemafile
 sdist
 setattr
@@ -159,6 +164,7 @@ wiswa's
 worktree
 xcrun
 xform
+xoff
 yapf
 yapfignore
 yarnrc

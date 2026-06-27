@@ -13,8 +13,11 @@ if TYPE_CHECKING:
 _MISSION_SIZE = 0x81a30
 _LEVEL_SIZE = 0x81a24
 _CFG_TOTAL = 10980
+_CFG_KEYBIND_OFFSET = 868
+_CFG_FORCE_FEEDBACK_OFFSET = 1028
 _CFG_HIGH_SCORE_OFFSET = 1582
 _CFG_HIGH_SCORE_SIZE = 8932
+_CFG_OPTIONS_OFFSET = 10626
 _CFG_CHECKSUM_OFFSET = 10646
 
 
@@ -24,10 +27,16 @@ def _load(path: Path) -> dict[str, Any]:
 
 def _build_cfg() -> bytearray:
     data = bytearray(_CFG_TOTAL)
-    stamp = b'Wed Apr 15 16:24:58 1998'
-    data[0:len(stamp)] = stamp
-    for i in range(_CFG_HIGH_SCORE_OFFSET, _CFG_HIGH_SCORE_OFFSET + _CFG_HIGH_SCORE_SIZE):
-        data[i] = i & 0xFF
+    data[0:24] = b'Wed Apr 15 16:24:58 1998'
+    struct.pack_into('<I', data, _CFG_FORCE_FEEDBACK_OFFSET, 1)
+    struct.pack_into('<i', data, _CFG_KEYBIND_OFFSET, 0x39)  # page 0, slot 0 = space
+    for i, value in enumerate((2, 6, 2, 1, 3)):
+        struct.pack_into('<i', data, _CFG_OPTIONS_OFFSET + i * 4, value)
+    struct.pack_into('<I', data, _CFG_HIGH_SCORE_OFFSET, 4200)  # table 0, entry 0 score
+    data[_CFG_HIGH_SCORE_OFFSET + 4:_CFG_HIGH_SCORE_OFFSET + 7] = b'ACE'
+    struct.pack_into('<i', data, _CFG_HIGH_SCORE_OFFSET + 108, 5)  # categoryId
+    struct.pack_into('<i', data, _CFG_HIGH_SCORE_OFFSET + 112, 1)  # subIndex
+    struct.pack_into('<i', data, _CFG_HIGH_SCORE_OFFSET + 116 + 108, -1)  # terminator record
     checksum = sum(struct.unpack_from(f'<{_CFG_HIGH_SCORE_SIZE}b', data,
                                       _CFG_HIGH_SCORE_OFFSET)) & 0xFFFFFFFF
     struct.pack_into('<I', data, _CFG_CHECKSUM_OFFSET, checksum)
@@ -84,6 +93,27 @@ def test_cfg(tmp_path: Path) -> None:
     blocks = _load(cfg_to_json(source, tmp_path))['blocks']
     assert blocks['buildStamp'] == 'Wed Apr 15 16:24:58 1998'
     assert blocks['checksum']['valid'] is True
+    assert blocks['forceFeedbackDevicePresent'] is True
+    assert blocks['keybindOffsets'][0][0] == {'directInputScancode': 0x39, 'name': 'Space'}
+    assert len(blocks['keybindOffsets']) == 4
+    assert blocks['optionValues'] == {
+        'comPort': 3,
+        'baudRate': 9600,
+        'stopBits': '2',
+        'parity': 'odd',
+        'flowControl': 'dtr',
+    }
+    assert blocks['highScoreTables'] == [{
+        'categoryId': 5,
+        'subIndex': 1,
+        'entries': [{
+            'score': 4200,
+            'name': 'ACE'
+        }] + [{
+            'score': 0,
+            'name': ''
+        }] * 8,
+    }]
     assert len(blocks) == 21
 
 
@@ -109,3 +139,20 @@ def test_cfg_unexpected_size(tmp_path: Path) -> None:
     obj = _load(cfg_to_json(source, tmp_path))
     assert 'blocks' not in obj
     assert obj['raw'] == [0, 0x72, 0x65, 0x73, 0x74]
+
+
+def test_cfg_special_keybinds_and_full_high_score(tmp_path: Path) -> None:
+    data = _build_cfg()
+    struct.pack_into('<i', data, _CFG_HIGH_SCORE_OFFSET + 116 + 108, 0)  # drop the terminator
+    struct.pack_into('<i', data, _CFG_KEYBIND_OFFSET + 4, 0x100)  # special input code
+    struct.pack_into('<i', data, _CFG_KEYBIND_OFFSET + 8, 0x77)  # unmapped scancode
+    checksum = sum(struct.unpack_from(f'<{_CFG_HIGH_SCORE_SIZE}b', data,
+                                      _CFG_HIGH_SCORE_OFFSET)) & 0xFFFFFFFF
+    struct.pack_into('<I', data, _CFG_CHECKSUM_OFFSET, checksum)
+    source = tmp_path / 'full.cfg'
+    source.write_bytes(data)
+    blocks = _load(cfg_to_json(source, tmp_path))['blocks']
+    page0 = blocks['keybindOffsets'][0]
+    assert page0[1] == {'directInputScancode': 0x100, 'name': 'special1'}
+    assert page0[2] == {'directInputScancode': 0x77, 'name': 'scancode_0x77'}
+    assert len(blocks['highScoreTables']) == _CFG_HIGH_SCORE_SIZE // 116

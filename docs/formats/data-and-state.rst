@@ -62,14 +62,25 @@ Save and snapshot state
 The save, config, level, and debug-snapshot files (``.sav``, ``.cfg``, ``.lev``, and ``.xxx``) are
 ``memcpy``-style images of game RAM. Their schemas were reverse-engineered from the PC executable
 (``incoming.exe``), so the decoders map the real in-memory layout rather than treating the body as
-opaque. Bytes that are not covered by a known field (gaps, large object pools, and run-time pointer
-tables) are preserved losslessly as base64, so the output is both human-inspectable and lossless.
+opaque. Every byte is decoded into a typed value, so the output is both human-inspectable and
+lossless; nothing is left as a base64 blob.
 
 The configuration file (``.cfg``, written by ``SaveGameConfigFile``) is a concatenation of
 fixed-size blocks described by the game's internal save-descriptor table, totalling 10980 bytes.
-It is split into its 21 named blocks; the leading build-stamp string is decoded, and the high-score
-checksum is decoded *and* recomputed (a signed-byte sum over the high-score-table block) and
-reported as ``valid`` when the two agree.
+It is split into its 21 named blocks, each decoded into a readable value:
+
+- the build stamp and the trailing text buffers as strings;
+- the keybind block as four control-config pages of ten slots, each
+  ``{directInputScancode, name}`` where the name is the W3C ``KeyboardEvent.code`` for the bound
+  DirectInput scancode (special input codes become ``special<n>``; an unbound slot has an empty
+  name);
+- the options block as the serial/modem multiplayer connection settings: COM port, baud rate, stop
+  bits, parity, and flow control;
+- the high-score block as a list of tables, each with its category id, sub-index, and nine
+  ``{score, name}`` entries;
+- the force-feedback flag as a boolean;
+- the checksum as ``{stored, computed, valid}``, where ``computed`` is a signed-byte sum recomputed
+  over the high-score block and ``valid`` reports whether the two agree.
 
 The snapshot files share one field table derived from the contiguous run of game globals that the
 engine serialises. ``.sav`` and ``.xxx`` (``SaveMissionStateSnapshot``) cover the whole region;
