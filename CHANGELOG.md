@@ -16,6 +16,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The `.cfg`, `.sav`, `.xxx`, and `.lev` converters now decode the files into fully structured JSON
+  using schemas reverse-engineered from `incoming.exe`, with named fields and a verified config
+  checksum, instead of emitting the body as base64.
 - Ported the asset-format reference into the Sphinx documentation under `docs/formats/` and
   expanded the documentation into separate, well-organised pages.
 

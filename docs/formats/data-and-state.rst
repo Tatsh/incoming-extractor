@@ -26,22 +26,22 @@ See :ref:`the legend <formats-legend>` for the status symbols.
      - PC
      - JSON
      - ✅
-     - Save game: header counts decoded, state as base64.
+     - Mission-state snapshot: named fields decoded; gaps as base64.
    * - ``.cfg``
      - PC
      - JSON
      - ✅
-     - Config: build-stamp decoded, blocks as base64.
+     - Config: named blocks split; build stamp and verified checksum decoded.
    * - ``.lev``
      - PC
      - JSON
      - ✅
-     - Level snapshot: flat image as base64.
+     - Level-state snapshot: shares the mission field table minus its prefix.
    * - ``.xxx``
      - PC
      - JSON
      - ✅
-     - Debug snapshot: lead count decoded, state as base64.
+     - Debug snapshot: same format as ``.sav``.
    * - ``.TXT``
      - DC
      - UTF-8
@@ -60,10 +60,25 @@ Save and snapshot state
 -----------------------
 
 The save, config, level, and debug-snapshot files (``.sav``, ``.cfg``, ``.lev``, and ``.xxx``) are
-``memcpy``-style images of build-specific RAM with no portable on-disk schema. Rather than invent a
-schema for the opaque body, the JSON decodes the documented header fields (counts, build stamp, and
-similar) and preserves the whole file losslessly as base64. This keeps the output both
-human-inspectable and lossless.
+``memcpy``-style images of game RAM. Their schemas were reverse-engineered from the PC executable
+(``incoming.exe``), so the decoders map the real in-memory layout rather than treating the body as
+opaque. Bytes that are not covered by a known field (gaps, large object pools, and run-time pointer
+tables) are preserved losslessly as base64, so the output is both human-inspectable and lossless.
+
+The configuration file (``.cfg``, written by ``SaveGameConfigFile``) is a concatenation of
+fixed-size blocks described by the game's internal save-descriptor table, totalling 10980 bytes.
+It is split into its 21 named blocks; the leading build-stamp string is decoded, and the high-score
+checksum is decoded *and* recomputed (a signed-byte sum over the high-score-table block) and
+reported as ``valid`` when the two agree.
+
+The snapshot files share one field table derived from the contiguous run of game globals that the
+engine serialises. ``.sav`` and ``.xxx`` (``SaveMissionStateSnapshot``) cover the whole region;
+``.lev`` (``SaveLevelStateSnapshot``) is the same region without its 12-byte leading mission-id
+prefix, so it reuses the same table shifted by that prefix. Each decoded field carries its game
+variable name (mission and game-mode flags, camera and replay-camera state, the script runtime,
+score statistics, frame and timer counters, lighting and fog state, the saved CD-audio track, and
+more). Run-time pointer fields are decoded as unsigned 32-bit words; their saved values are not
+meaningful across sessions.
 
 Dreamcast ``.TXT`` text
 -----------------------

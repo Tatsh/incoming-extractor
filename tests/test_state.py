@@ -1,63 +1,111 @@
 from __future__ import annotations
 
-from base64 import b64decode
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 import json
 import struct
 
 from incoming_extractor.converters.state import cfg_to_json, lev_to_json, sav_to_json, xxx_to_json
+import pytest
 
 if TYPE_CHECKING:
     from pathlib import Path
 
+_MISSION_SIZE = 0x81a30
+_LEVEL_SIZE = 0x81a24
+_CFG_TOTAL = 10980
+_CFG_HIGH_SCORE_OFFSET = 1582
+_CFG_HIGH_SCORE_SIZE = 8932
+_CFG_CHECKSUM_OFFSET = 10646
 
-def _load(path: Path) -> dict[str, object]:
-    return cast('dict[str, object]', json.loads(path.read_text('utf-8')))
+
+def _load(path: Path) -> dict[str, Any]:
+    return cast('dict[str, Any]', json.loads(path.read_text('utf-8')))
+
+
+def _build_cfg() -> bytearray:
+    data = bytearray(_CFG_TOTAL)
+    stamp = b'Wed Apr 15 16:24:58 1998'
+    data[0:len(stamp)] = stamp
+    for i in range(_CFG_HIGH_SCORE_OFFSET, _CFG_HIGH_SCORE_OFFSET + _CFG_HIGH_SCORE_SIZE):
+        data[i] = i & 0xFF
+    checksum = sum(struct.unpack_from(f'<{_CFG_HIGH_SCORE_SIZE}b', data,
+                                      _CFG_HIGH_SCORE_OFFSET)) & 0xFFFFFFFF
+    struct.pack_into('<I', data, _CFG_CHECKSUM_OFFSET, checksum)
+    return data
 
 
 def test_sav(tmp_path: Path) -> None:
-    data = struct.pack('<3I', 605, 5, 1) + b'state-body'
+    data = bytearray(_MISSION_SIZE)
+    struct.pack_into('<i', data, 0x00000, 605)
+    struct.pack_into('<I', data, 0x1d30, 7)
+    struct.pack_into('<f', data, 0x81040, 1.5)
     source = tmp_path / 'file0.sav'
     source.write_bytes(data)
     obj = _load(sav_to_json(source, tmp_path))
-    assert obj['counts'] == [605, 5, 1]
-    assert obj['size'] == len(data)
-    assert b64decode(str(obj['data'])) == data
+    assert obj['format'] == 'incoming-save'
+    assert obj['fields']['nCurrentMissionId'] == 605
+    assert obj['fields']['dwSnapshotCdTrack'] == 7
+    assert obj['fields']['flCameraPosX'] == pytest.approx(1.5)
 
 
-def test_sav_too_short_for_counts(tmp_path: Path) -> None:
+def test_sav_unexpected_size(tmp_path: Path) -> None:
     source = tmp_path / 's.sav'
-    source.write_bytes(b'abcd')
-    assert 'counts' not in _load(sav_to_json(source, tmp_path))
+    source.write_bytes(b'ab')
+    obj = _load(sav_to_json(source, tmp_path))
+    assert obj['size'] == 2
+    assert obj['fields'] == {'unknownAt_000000': [0x61, 0x62]}
 
 
 def test_xxx(tmp_path: Path) -> None:
+    data = bytearray(_MISSION_SIZE)
+    struct.pack_into('<i', data, 0x00000, 0x69)
     source = tmp_path / 't.xxx'
-    source.write_bytes(struct.pack('<I', 0x69) + b'state')
-    assert _load(xxx_to_json(source, tmp_path))['lead_count'] == 0x69
-
-
-def test_xxx_too_short(tmp_path: Path) -> None:
-    source = tmp_path / 't.xxx'
-    source.write_bytes(b'ab')
-    assert 'lead_count' not in _load(xxx_to_json(source, tmp_path))
+    source.write_bytes(data)
+    obj = _load(xxx_to_json(source, tmp_path))
+    assert obj['format'] == 'incoming-debug-snapshot'
+    assert obj['fields']['nCurrentMissionId'] == 0x69
 
 
 def test_lev(tmp_path: Path) -> None:
+    data = bytearray(_LEVEL_SIZE)
+    # The level region starts at g_dwNetworkMissionFlag (global 0xc), so it sits at file offset 0.
+    struct.pack_into('<I', data, 0x00000, 0xABCD)
     source = tmp_path / 'store.lev'
-    source.write_bytes(b'flat-image')
+    source.write_bytes(data)
     obj = _load(lev_to_json(source, tmp_path))
     assert obj['format'] == 'incoming-level-snapshot'
-    assert b64decode(str(obj['data'])) == b'flat-image'
+    assert obj['fields']['dwNetworkMissionFlag'] == 0xABCD
+    assert 'nCurrentMissionId' not in obj['fields']
 
 
 def test_cfg(tmp_path: Path) -> None:
     source = tmp_path / 'incoming.cfg'
-    source.write_bytes(b'Wed Apr 15 16:24:58 1998\x00blocks')
-    assert _load(cfg_to_json(source, tmp_path))['build_stamp'] == 'Wed Apr 15 16:24:58 1998'
+    source.write_bytes(_build_cfg())
+    blocks = _load(cfg_to_json(source, tmp_path))['blocks']
+    assert blocks['buildStamp'] == 'Wed Apr 15 16:24:58 1998'
+    assert blocks['checksum']['valid'] is True
+    assert len(blocks) == 21
 
 
-def test_cfg_leading_nul(tmp_path: Path) -> None:
+def test_cfg_checksum_invalid(tmp_path: Path) -> None:
+    data = _build_cfg()
+    struct.pack_into('<I', data, _CFG_CHECKSUM_OFFSET, 0xDEADBEEF)
+    source = tmp_path / 'bad.cfg'
+    source.write_bytes(data)
+    assert _load(cfg_to_json(source, tmp_path))['blocks']['checksum']['valid'] is False
+
+
+def test_cfg_empty_build_stamp(tmp_path: Path) -> None:
+    data = _build_cfg()
+    data[0] = 0
+    source = tmp_path / 'blank.cfg'
+    source.write_bytes(data)
+    assert not _load(cfg_to_json(source, tmp_path))['blocks']['buildStamp']
+
+
+def test_cfg_unexpected_size(tmp_path: Path) -> None:
     source = tmp_path / 'c.cfg'
     source.write_bytes(b'\x00rest')
-    assert 'build_stamp' not in _load(cfg_to_json(source, tmp_path))
+    obj = _load(cfg_to_json(source, tmp_path))
+    assert 'blocks' not in obj
+    assert obj['raw'] == [0, 0x72, 0x65, 0x73, 0x74]
