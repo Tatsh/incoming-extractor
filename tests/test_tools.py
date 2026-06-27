@@ -43,7 +43,9 @@ def test_locate_not_found(mocker: MockerFixture) -> None:
         find_spvr2png()
 
 
-def test_run_unshield_with_lib(tmp_path: Path, mocker: MockerFixture) -> None:
+def test_run_unshield_with_lib(tmp_path: Path, mocker: MockerFixture,
+                               monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv('LD_LIBRARY_PATH', raising=False)
     build = tmp_path / 'build'
     (build / 'src').mkdir(parents=True)
     (build / 'lib').mkdir()
