@@ -1,0 +1,34 @@
+apps:
+  incoming-extractor:
+    command: 'bin/incoming-extractor'
+    plugs:
+      - 'home'
+      - 'network'
+      - 'network-bind'
+base: 'core24'
+confinement: 'strict'
+contact: 'https://github.com/Tatsh/incoming-extractor/issues'
+description: 'Extract and convert assets from the PC and Dreamcast versions of Incoming.'
+donation: 'https://buymeacoffee.com/Tatsh'
+grade: 'stable'
+issues: 'https://github.com/Tatsh/incoming-extractor/issues'
+license: 'MIT'
+name: 'incoming-extractor'
+parts:
+  incoming-extractor:
+    build-packages: []
+    plugin: 'python'
+    python-packages:
+      - '.'
+    source: '.'
+    stage-packages: []
+platforms:
+  amd64:
+    build-on: 'amd64'
+  arm64:
+    build-on: 'arm64'
+source-code: 'https://github.com/Tatsh/incoming-extractor'
+summary: 'Extract and convert assets from the PC and Dreamcast versions of Incoming.'
+title: 'incoming-extractor'
+version: '0.0.0'
+website: 'https://tatsh.github.io/incoming-extractor/'
