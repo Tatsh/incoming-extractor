@@ -80,6 +80,7 @@ It is split into its 21 named blocks, each decoded into a readable value:
   ``{score, name}`` entries;
 - the input-options, camera-state, joystick-binding, and input-state blocks as objects of named
   fields (the same field-table approach used for the snapshots);
+- the saved-mission-slot table as a list of ten ``{name, missionSlot, levelValue}`` slots;
 - the force-feedback flag as a boolean;
 - the checksum as ``{stored, computed, valid}``, where ``computed`` is a signed-byte sum recomputed
   over the high-score block and ``valid`` reports whether the two agree.

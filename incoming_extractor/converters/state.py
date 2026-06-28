@@ -85,6 +85,12 @@ _HIGH_SCORE_RECORD_SIZE = 116
 _HIGH_SCORE_ENTRY_SIZE = 12
 _HIGH_SCORE_ENTRY_COUNT = 9
 
+# The saved-mission-slot block (from UpdateMissionRestartHighScoreScreen @ 0x46af00) is 10 records
+# of 55 bytes: a name string (empty slots hold a dashes string), then a mission-slot byte and a
+# level-value byte.
+_MISSION_SLOT_SIZE = 0x37
+_MISSION_SLOT_COUNT = 10
+
 # DirectInput keyboard scancodes (DIK_*, i.e. PS/2 set 1) to W3C ``KeyboardEvent.code`` values,
 # used to make the keybind block readable.
 _DIK_KEY_NAMES = {
@@ -773,6 +779,18 @@ def _decode_high_score_tables(raw: bytes) -> list[dict[str, Any]]:
     return tables
 
 
+def _decode_mission_slots(raw: bytes) -> list[dict[str, Any]]:
+    slots = []
+    for i in range(_MISSION_SLOT_COUNT):
+        record = raw[i * _MISSION_SLOT_SIZE:(i + 1) * _MISSION_SLOT_SIZE]
+        slots.append({
+            'name': record[0:0x35].split(b'\x00', 1)[0].decode('latin-1'),
+            'missionSlot': record[0x35],
+            'levelValue': record[0x36],
+        })
+    return slots
+
+
 def cfg_to_json(source: Path, dest_dir: Path) -> Path:
     """
     Convert an Incoming ``.cfg`` configuration file to JSON.
@@ -823,6 +841,9 @@ def cfg_to_json(source: Path, dest_dir: Path) -> Path:
     blocks['forceFeedbackDevicePresent'] = bool(blocks['forceFeedbackDevicePresent'])
     blocks['keybindOffsets'] = _decode_keybinds(blocks['keybindOffsets'])
     blocks['optionValues'] = _decode_serial_options(blocks['optionValues'])
+    slot_offset, slot_size = offsets['savedMissionSlotTable']
+    blocks['savedMissionSlotTable'] = _decode_mission_slots(
+        data[slot_offset:slot_offset + slot_size])
     for name, fields in _CFG_SUBFIELDS.items():
         block_offset, block_size = offsets[name]
         blocks[name] = _decode_region(data[block_offset:block_offset + block_size], fields, 0)
