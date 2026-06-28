@@ -30,6 +30,7 @@ dashcam
 dataclasses
 datatable
 datatables
+deathmatch
 debugpy
 delenv
 docstrings
