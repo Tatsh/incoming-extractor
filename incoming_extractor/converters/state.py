@@ -90,7 +90,13 @@ _FLAG_BIT_NAMES: dict[str, dict[int, str]] = {
     'netGameFlags': _NET_GAME_FLAG_BITS,
     'savedNetGameFlags': _NET_GAME_FLAG_BITS,
     'gameSessionFlags': {
-        0: 'inGame'
+        0: 'splitScreen'
+    },
+    'netControlFlags': {
+        0: 'netPlayActive'
+    },
+    'worldStateFlags': {
+        0: 'worldReady'
     },
     'userCameraFlags': {
         1: 'spectator'
