@@ -58,7 +58,11 @@ _CFG_BLOCKS: tuple[tuple[str, str, int], ...] = (
 
 
 def _cfg_block_size(kind: str, count: int) -> int:
-    return count if kind == 'str' else _FMT_SIZE[kind] * count
+    if kind == 'str':
+        return count
+    if kind == 'OBJ':
+        return _GAME_OBJECT_SIZE * count
+    return _FMT_SIZE[kind] * count
 
 
 _CFG_TOTAL = sum(_cfg_block_size(kind, count) for _, kind, count in _CFG_BLOCKS)
@@ -322,6 +326,67 @@ _CFG_SUBFIELDS = {
     'inputStateBlock': _INPUT_STATE_BLOCK_FIELDS,
 }
 
+# The world-object pool is an array of 204-byte GameObject records (slot stride 0xCC, from
+# InitializeBuildingAndWorldPool @ 0x445740). This is the GameObject struct layout from
+# incoming.exe; a field with format 'OBJ' is decoded as an array of these records.
+_GAME_OBJECT_SIZE = 204
+_GAME_OBJECT_FIELDS: tuple[tuple[int, str, str, int], ...] = (
+    (0x00, 'objectClassIndex', 'H', 1),
+    (0x02, 'typeId', 'H', 1),
+    (0x04, 'nextFree', 'I', 1),
+    (0x08, 'nextInChain', 'I', 1),
+    (0x0c, 'childList', 'I', 1),
+    (0x10, 'soundSource', 'I', 1),
+    (0x14, 'objectDef', 'I', 1),
+    (0x18, 'upX', 'f', 1),
+    (0x1c, 'upY', 'f', 1),
+    (0x20, 'upZ', 'f', 1),
+    (0x24, 'rightX', 'f', 1),
+    (0x28, 'rightY', 'f', 1),
+    (0x2c, 'rightZ', 'f', 1),
+    (0x30, 'fwdX', 'f', 1),
+    (0x34, 'fwdY', 'f', 1),
+    (0x38, 'fwdZ', 'f', 1),
+    (0x3c, 'templateUpdate', 'I', 1),
+    (0x40, 'templatePhaseSeed', 'I', 1),
+    (0x44, 'dynamicsRecord', 'I', 1),
+    (0x48, 'debrisDamp48', 'f', 1),
+    (0x4c, 'debrisRate4c', 'f', 1),
+    (0x50, 'field50', 'f', 1),
+    (0x54, 'debrisState54', 'I', 1),
+    (0x58, 'debrisAccum58', 'f', 1),
+    (0x5c, 'field5c', 'H', 1),
+    (0x5e, 'ttl', 'h', 1),
+    (0x60, 'field60', 'f', 1),
+    (0x64, 'field64', 'f', 1),
+    (0x68, 'initLifetime', 'I', 1),
+    (0x6c, 'emitterAttr', 'f', 1),
+    (0x70, 'field70', 'f', 1),
+    (0x74, 'field74', 'f', 1),
+    (0x78, 'posX', 'f', 1),
+    (0x7c, 'posY', 'f', 1),
+    (0x80, 'posZ', 'f', 1),
+    (0x84, 'param84', 'f', 1),
+    (0x88, 'effectScalar', 'f', 1),
+    (0x8c, 'sparkScale8c', 'f', 1),
+    (0x90, 'dirX', 'f', 1),
+    (0x94, 'dirY', 'f', 1),
+    (0x98, 'dirZ', 'f', 1),
+    (0x9c, 'behaviorId', 'I', 1),
+    (0xa0, 'effectMode', 'I', 1),
+    (0xa4, 'packedColor', 'I', 1),
+    (0xa8, 'sparkColorA8', 'I', 1),
+    (0xac, 'phase', 'I', 1),
+    (0xb0, 'update', 'I', 1),
+    (0xb4, 'targetPoint', 'I', 1),
+    (0xb8, 'lifetime', 'I', 1),
+    (0xbc, 'effectSubModeBc', 'I', 1),
+    (0xc0, 'projectileTypeIndex', 'i', 1),
+    (0xc4, 'fieldC4', 'I', 1),
+    (0xc8, 'effectSlotIndex', 'H', 1),
+    (0xca, 'stateFlags', 'H', 1),
+)
+
 # Field table for the mission/level snapshot region, derived from the named globals of incoming.exe
 # in [g_nCurrentMissionId, g_nCurrentMissionId + 0x81a30). Each entry is (offset, name, format,
 # count) where format is a struct character ('i', 'I', 'f', 'H', 'h', 'B'). Run-time pointer fields
@@ -524,37 +589,7 @@ _SNAPSHOT_FIELDS: tuple[tuple[int, str, str, int], ...] = (
     (0x1372c, 'worldPoolGridNodeNext', 'I', 1),
     (0x137f0, 'worldPoolRecordHead', 'H', 1),
     (0x137f2, 'worldPoolRecordStateFlags', 'H', 1),
-    (0x137f4, 'worldObjectPool', 'H', 1),
-    (0x137f6, 'worldPoolField02', 'H', 1),
-    (0x137f8, 'worldPoolField04', 'I', 1),
-    (0x137fc, 'worldPoolField08', 'I', 1),
-    (0x13800, 'worldPoolField0C', 'I', 1),
-    (0x13804, 'worldPoolField10', 'i', 1),
-    (0x13808, 'worldPoolField14', 'I', 1),
-    (0x1380c, 'worldPoolField18', 'I', 1),
-    (0x13810, 'worldPoolField1c', 'I', 1),
-    (0x1383c, 'worldPoolField48', 'I', 1),
-    (0x13840, 'worldPoolField4c', 'I', 1),
-    (0x1386c, 'worldPoolField78', 'f', 1),
-    (0x13870, 'worldPoolField7C', 'f', 1),
-    (0x13874, 'worldPoolField80', 'f', 1),
-    (0x13878, 'worldPoolField84', 'f', 1),
-    (0x1387c, 'worldPoolField88', 'f', 1),
-    (0x13880, 'worldPoolField8C', 'f', 1),
-    (0x13890, 'worldPoolField9C', 'I', 1),
-    (0x13894, 'worldPoolFieldA0', 'I', 1),
-    (0x13898, 'worldPoolFieldA4', 'I', 1),
-    (0x1389c, 'worldPoolFieldA8', 'I', 1),
-    (0x138a8, 'worldPoolRec1Field54', 'H', 1),
-    (0x138ac, 'worldPoolFieldB8', 'i', 1),
-    (0x138b0, 'worldPoolRec1Field5c', 'H', 1),
-    (0x138bc, 'worldPoolFieldC8', 'H', 1),
-    (0x138be, 'worldPoolFlagsCA', 'B', 1),
-    (0x138c0, 'worldPoolRec1Base', 'I', 1),
-    (0x138d0, 'worldPoolRec1Field7c', 'H', 1),
-    (0x13974, 'worldPoolRec1Field80', 'H', 1),
-    (0x1397c, 'worldPoolRec1Field88', 'H', 1),
-    (0x1398a, 'worldPoolRec1Field96', 'H', 1),
+    (0x137f4, 'worldObjectPool', 'OBJ', 1700),
     (0x682a4, 'colorKeyRefCount', 'i', 30),
     (0x68c90, 'missionScriptDataPool', 'B', 98304),
     (0x80c90, 'scriptDataBuffer', 'B', 32),
@@ -629,6 +664,11 @@ def _write_json(source: Path, dest_dir: Path, obj: dict[str, Any]) -> Path:
 def _unpack(data: bytes, pos: int, fmt: str, count: int) -> Any:
     if fmt == 'str':
         return data[pos:pos + count].split(b'\x00', 1)[0].decode('latin-1')
+    if fmt == 'OBJ':
+        return [
+            _decode_region(data[pos + i * _GAME_OBJECT_SIZE:pos + (i + 1) * _GAME_OBJECT_SIZE],
+                           _GAME_OBJECT_FIELDS, 0) for i in range(count)
+        ]
     values = struct.unpack_from(f'<{count}{fmt}', data, pos)
     return values[0] if count == 1 else list(values)
 

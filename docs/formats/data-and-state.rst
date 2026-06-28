@@ -94,6 +94,11 @@ score statistics, frame and timer counters, lighting and fog state, the saved CD
 more). Run-time pointer fields are decoded as unsigned 32-bit words; their saved values are not
 meaningful across sessions.
 
+The largest part of a snapshot is the world-object pool, an array of 1700 204-byte ``GameObject``
+records; it is decoded as ``worldObjectPool``, a list of objects with named fields (position,
+orientation vectors, type and class ids, behaviour and effect state, lifetime, and so on). Other
+large record pools that are not yet fully reverse-engineered remain as ``unknownAt_<offset>`` arrays.
+
 Across every decoded block and snapshot, field names are emitted as plain camelCase (the game's
 Hungarian prefixes are stripped); each ``*Flags`` bitfield is expanded into an object of one boolean
 per bit, using the reverse-engineered name for bits whose meaning is known (for example
