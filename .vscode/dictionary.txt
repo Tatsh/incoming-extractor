@@ -12,6 +12,7 @@ automodule
 autouse
 bascom
 bbhhh
+behavior
 bitfield
 bsky
 cabdata
