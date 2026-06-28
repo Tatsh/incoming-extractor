@@ -28,7 +28,20 @@ local utils = import 'utils.libjsonnet';
       },
       poetry+: {
         dependencies+: {
+          anyio: utils.latestPypiPackageVersionCaret('anyio'),
           pillow: utils.latestPypiPackageVersionCaret('pillow'),
+        },
+        group+: {
+          tests+: {
+            dependencies+: {
+              'pytest-asyncio': utils.latestPypiPackageVersionCaret('pytest-asyncio'),
+            },
+          },
+        },
+      },
+      pytest+: {
+        ini_options+: {
+          asyncio_mode: 'strict',
         },
       },
     },

@@ -1,11 +1,13 @@
 """Mirror a source tree into an output directory, converting or copying each file."""
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
+import asyncio
 import logging
+import pathlib
 import shutil
 
+from anyio import Path
 from typing_extensions import override
 
 from .context import using_input_root
@@ -14,8 +16,9 @@ from .utils import pluralize
 
 if TYPE_CHECKING:
     from .converters import Rule
+    from .sources import PreparedSource
 
-__all__ = ('ConversionSummary', 'convert_file', 'convert_tree')
+__all__ = ('ConversionJob', 'ConversionSummary', 'convert_file', 'run_conversions')
 
 log = logging.getLogger(__name__)
 
@@ -48,26 +51,49 @@ class ConversionSummary(NamedTuple):
         return ConversionSummary(*(a + b for a, b in zip(self, other, strict=True)))
 
 
-def _match_rule(path: Path) -> Rule | None:
+class ConversionJob(NamedTuple):
+    """A single file to convert or copy into a destination directory."""
+
+    source: Path
+    """The source file."""
+    dest_dir: Path
+    """The destination directory (already created)."""
+    input_root: Path
+    """The root of the source tree, used to resolve sibling assets such as textures."""
+
+
+_EMPTY_SUMMARY = ConversionSummary(0, 0, 0, 0, 0)
+
+
+def _match_rule(path: pathlib.Path) -> Rule | None:
     return next((rule for rule in RULES if rule.match(path)), None)
 
 
-def _copy(source: Path, dest_dir: Path) -> None:
+def _copy(source: pathlib.Path, dest_dir: pathlib.Path) -> None:
     shutil.copy2(source, dest_dir / source.name)
 
 
-def convert_file(source: Path, dest_dir: Path, input_root: Path,
-                 warned: set[str]) -> ConversionSummary:
+def _convert_sync(rule: Rule, source: pathlib.Path, dest_dir: pathlib.Path,
+                  input_root: pathlib.Path) -> pathlib.Path | tuple[pathlib.Path, ...]:
+    with using_input_root(input_root):
+        return rule.convert(source, dest_dir)
+
+
+async def convert_file(source: Path, dest_dir: Path, input_root: Path,
+                       warned: set[str]) -> ConversionSummary:
     """
     Convert or copy a single file into *dest_dir*.
 
+    The synchronous converter (or file copy) runs in a worker thread so that gathered jobs make
+    progress concurrently.
+
     Parameters
     ----------
-    source : Path
+    source : anyio.Path
         The source file.
-    dest_dir : Path
+    dest_dir : anyio.Path
         The destination directory (already created).
-    input_root : Path
+    input_root : anyio.Path
         The root of the source tree, used to resolve sibling assets such as textures.
     warned : set[str]
         Format names already warned about, mutated to suppress duplicate warnings.
@@ -77,52 +103,77 @@ def convert_file(source: Path, dest_dir: Path, input_root: Path,
     ConversionSummary
         The totals contributed by this file.
     """
-    if (rule := _match_rule(source)) is None:
-        _copy(source, dest_dir)
+    src = pathlib.Path(source)
+    dest = pathlib.Path(dest_dir)
+    if (rule := _match_rule(src)) is None:
+        await asyncio.to_thread(_copy, src, dest)
         return ConversionSummary(0, 0, 1, 0, 0)
     try:
-        with using_input_root(input_root):
-            result = rule.convert(source, dest_dir)
+        result = await asyncio.to_thread(_convert_sync, rule, src, dest, pathlib.Path(input_root))
     except UnsupportedFormatError as e:
         if rule.name not in warned:
             warned.add(rule.name)
             log.warning('Copying %s files unconverted: %s', rule.name, e)
-        _copy(source, dest_dir)
+        await asyncio.to_thread(_copy, src, dest)
         return ConversionSummary(0, 0, 1, 1, 0)
     except ConversionError as e:
         log.error('%s', e)  # noqa: TRY400
-        _copy(source, dest_dir)
+        await asyncio.to_thread(_copy, src, dest)
         return ConversionSummary(0, 0, 1, 0, 1)
-    produced = 1 if isinstance(result, Path) else len(result)
-    log.debug('Converted `%s` to %s.', source, pluralize(produced, 'file'))
+    produced = len(result) if isinstance(result, tuple) else 1
+    log.debug('Converted `%s` to %s.', src, pluralize(produced, 'file'))
     return ConversionSummary(1, produced, 0, 0, 0)
 
 
-def convert_tree(input_root: Path, output_root: Path) -> ConversionSummary:
-    """
-    Mirror *input_root* into *output_root*, converting recognised files and copying the rest.
+async def _enqueue_jobs(prepared: PreparedSource, output: Path,
+                        queue: asyncio.Queue[ConversionJob | None]) -> None:
+    if prepared.root is not None:
+        root = Path(prepared.root)
+        for source in sorted([path async for path in root.rglob('*')], key=str):
+            if not await source.is_file():
+                continue
+            dest_dir = output / source.relative_to(root).parent
+            await dest_dir.mkdir(parents=True, exist_ok=True)
+            await queue.put(ConversionJob(source, dest_dir, root))
+    for asset in prepared.files:
+        path = Path(asset)
+        await queue.put(ConversionJob(path, output, path.parent))
 
-    The output tree reproduces the input directory structure. Converted files are written at the
-    mirrored location; every other file (including formats not yet decoded) is copied verbatim.
+
+async def _worker(queue: asyncio.Queue[ConversionJob | None],
+                  warned: set[str]) -> ConversionSummary:
+    total = _EMPTY_SUMMARY
+    while (job := await queue.get()) is not None:
+        total += await convert_file(job.source, job.dest_dir, job.input_root, warned)
+    return total
+
+
+async def run_conversions(prepared: PreparedSource, output: Path, *,
+                          jobs: int) -> ConversionSummary:
+    """
+    Convert every prepared file into *output* using a pool of worker tasks.
+
+    All jobs are enqueued, then *jobs* workers consume the queue concurrently and their per-worker
+    totals are gathered and summed.
 
     Parameters
     ----------
-    input_root : Path
-        The directory to mirror.
-    output_root : Path
-        The directory to write the mirror into.
+    prepared : PreparedSource
+        The tree root and loose files to convert.
+    output : anyio.Path
+        The output directory the source tree is mirrored into.
+    jobs : int
+        The number of concurrent worker tasks.
 
     Returns
     -------
     ConversionSummary
         The aggregate totals.
     """
-    summary = ConversionSummary(0, 0, 0, 0, 0)
+    queue: asyncio.Queue[ConversionJob | None] = asyncio.Queue()
     warned: set[str] = set()
-    for source in sorted(input_root.rglob('*')):
-        if not source.is_file():
-            continue
-        dest_dir = output_root / source.relative_to(input_root).parent
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        summary += convert_file(source, dest_dir, input_root, warned)
-    return summary
+    await _enqueue_jobs(prepared, output, queue)
+    for _ in range(jobs):
+        await queue.put(None)
+    totals = await asyncio.gather(*(_worker(queue, warned) for _ in range(jobs)))
+    return sum(totals, _EMPTY_SUMMARY)

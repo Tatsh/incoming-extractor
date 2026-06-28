@@ -62,7 +62,8 @@ An installed copy works as the source too — point at the game's directory, suc
 supported.
 
 Pass `--gdiextract-path`, `--spvr2png-path`, or `--unshield-path` to point at the native tools when
-they are not on `PATH`, and `--debug` for verbose logging.
+they are not on `PATH`, `-j`/`--jobs` to set the number of concurrent conversion jobs (defaults to
+the CPU count), and `--debug` for verbose logging.
 
 ## Utilities
 

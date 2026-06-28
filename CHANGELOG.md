@@ -13,9 +13,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `ian2obj` and `extract-pvr-pack` standalone command-line utilities.
 - `ian2obj` converts Dreamcast `*_M.BIN` model packs in addition to PC `.ian` meshes.
+- `-j`/`--jobs` option to run file conversions concurrently, defaulting to the CPU count.
 
 ### Changed
 
+- File conversions now run concurrently across a pool of worker tasks instead of one at a time.
 - The `.cfg`, `.sav`, `.xxx`, and `.lev` converters now decode the files into fully structured JSON
   using schemas reverse-engineered from `incoming.exe`, with named fields and a verified config
   checksum, instead of emitting the body as base64.
