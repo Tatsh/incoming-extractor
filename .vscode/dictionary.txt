@@ -2,6 +2,7 @@ accum
 adpcm
 aica
 anchore
+anyio
 Ångström
 appdir
 appimage
