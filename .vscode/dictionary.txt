@@ -12,6 +12,7 @@ automodule
 autouse
 bascom
 bbhhh
+bitfield
 bsky
 cabdata
 caplog
