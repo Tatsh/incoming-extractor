@@ -163,7 +163,7 @@ def test_cfg_subfield_blocks(tmp_path: Path) -> None:
     assert blocks['inputAxisOptions']['sessionElapsed'] == 0x2222222211111111
     assert blocks['cameraState']['cameraPosX'] == pytest.approx(2.0)
     assert blocks['inputStateBlock']['netSessionName'] == 'HOST'
-    assert blocks['inputStateBlock']['netGameFlags']['bit0'] is True
+    assert blocks['inputStateBlock']['netGameFlags']['deathmatch'] is True  # bit 0
     assert blocks['inputStateBlock']['netGameFlags']['bit1'] is False
     assert blocks['inputStateBlock']['netGameFlags']['bit2'] is True
     assert blocks['joystickAxisBind']['joystickAxisBind'] == [0] * 44

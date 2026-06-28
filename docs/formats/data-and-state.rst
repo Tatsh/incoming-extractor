@@ -96,7 +96,9 @@ meaningful across sessions.
 
 Across every decoded block and snapshot, field names are emitted as plain camelCase (the game's
 Hungarian prefixes are stripped); each ``*Flags`` bitfield is expanded into an object of one boolean
-per bit; and split ``*Lo``/``*Hi`` dword pairs are combined into a single 64-bit field.
+per bit, using the reverse-engineered name for bits whose meaning is known (for example
+``netGameFlags`` exposes ``deathmatch``, ``teamMode``, and ``timedMission``) and ``bit<n>`` for the
+rest; and split ``*Lo``/``*Hi`` dword pairs are combined into a single 64-bit field.
 
 Dreamcast ``.TXT`` text
 -----------------------

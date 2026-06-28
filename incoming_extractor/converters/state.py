@@ -80,8 +80,24 @@ _KEYBIND_SLOTS_PER_PAGE = 10
 _KEYBIND_SPECIAL_BASE = 0x100
 
 # Reverse-engineered bit names for the bitfield (``*Flags``) globals, keyed by cleaned field name
-# then bit index. Bits without a known meaning fall back to ``bit<n>``.
-_FLAG_BIT_NAMES: dict[str, dict[int, str]] = {}
+# then bit index. Bits without a known meaning fall back to ``bit<n>``. Derived from incoming.exe.
+_NET_GAME_FLAG_BITS = {0: 'deathmatch', 5: 'teamMode', 6: 'timedMission'}
+_FLAG_BIT_NAMES: dict[str, dict[int, str]] = {
+    'netGameFlags': _NET_GAME_FLAG_BITS,
+    'savedNetGameFlags': _NET_GAME_FLAG_BITS,
+    'gameSessionFlags': {
+        0: 'inGame'
+    },
+    'userCameraFlags': {
+        1: 'spectator'
+    },
+    'hudOverlayFlags': {
+        1: 'inGameOverlay'
+    },
+    'globalStateFlags': {
+        0: 'scoreboardLayout'
+    },
+}
 
 # Each high-score table record is 29 dwords (116 bytes): 9 entries of {score:u32, name:char[8]} then
 # a category id and a 1-based sub-index. A record whose category id is -1 terminates the arena.
