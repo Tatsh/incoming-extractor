@@ -13,6 +13,7 @@ from .context import using_tool_paths
 from .dispatch import ConversionSummary, convert_file, convert_tree
 from .sources import SourceError, prepare_source
 from .tools import ToolNotFoundError
+from .utils import pluralize
 
 __all__ = ('main',)
 
@@ -67,7 +68,8 @@ def main(source: Path,
             summary += convert_tree(prepared.root, output)
         for asset in prepared.files:
             summary += convert_file(asset, output, asset.parent, warned)
-    click.echo(f'Converted {summary.converted} file(s) into {summary.produced} output(s); '
-               f'copied {summary.copied} (skipped {summary.skipped}), failed {summary.failed}.')
+    click.echo(f'Converted {pluralize(summary.converted, "file")} into '
+               f'{pluralize(summary.produced, "output")}; copied {summary.copied} '
+               f'(skipped {summary.skipped}), failed {summary.failed}.')
     if summary.failed:
         raise click.exceptions.Exit(1)

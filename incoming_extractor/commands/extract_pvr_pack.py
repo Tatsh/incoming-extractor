@@ -5,6 +5,7 @@ from pathlib import Path
 import logging
 
 from incoming_extractor.converters.images import pvr_pack_to_files, pvr_pack_to_png
+from incoming_extractor.utils import pluralize
 import click
 
 from .utils import debug_option
@@ -33,4 +34,4 @@ def extract_pvr_pack(pack: Path, outdir: Path, *, png: bool) -> None:
     outdir.mkdir(parents=True, exist_ok=True)
     log.debug('Unpacking `%s` into `%s` (png=%s).', pack, outdir, png)
     outputs = pvr_pack_to_png(pack, outdir) if png else pvr_pack_to_files(pack, outdir)
-    click.echo(f'Extracted {len(outputs)} texture(s) to {outdir / pack.stem}.')
+    click.echo(f'Extracted {pluralize(len(outputs), "texture")} to {outdir / pack.stem}.')

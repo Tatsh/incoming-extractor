@@ -7,6 +7,7 @@ import logging
 from incoming_extractor.context import using_input_root
 from incoming_extractor.converters.models import ian_to_obj
 from incoming_extractor.converters.models_dc import mbin_to_obj
+from incoming_extractor.utils import pluralize
 import click
 
 from .utils import debug_option
@@ -57,4 +58,4 @@ def ian2obj(model: Path, outdir: Path, *, game_root: Path | None, no_texture: bo
     else:
         with using_input_root(root):
             outputs = convert(model, outdir)
-    click.echo(f'Wrote {len(outputs)} file(s) to {outdir}.')
+    click.echo(f'Wrote {pluralize(len(outputs), "file")} to {outdir}.')

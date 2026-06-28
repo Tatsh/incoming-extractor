@@ -10,6 +10,7 @@ from typing_extensions import override
 
 from .context import using_input_root
 from .converters import RULES, ConversionError, UnsupportedFormatError
+from .utils import pluralize
 
 if TYPE_CHECKING:
     from .converters import Rule
@@ -93,7 +94,7 @@ def convert_file(source: Path, dest_dir: Path, input_root: Path,
         _copy(source, dest_dir)
         return ConversionSummary(0, 0, 1, 0, 1)
     produced = 1 if isinstance(result, Path) else len(result)
-    log.debug('Converted `%s` to %d file(s).', source, produced)
+    log.debug('Converted `%s` to %s.', source, pluralize(produced, 'file'))
     return ConversionSummary(1, produced, 0, 0, 0)
 
 
