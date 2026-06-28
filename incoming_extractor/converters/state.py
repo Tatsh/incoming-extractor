@@ -60,9 +60,9 @@ _CFG_BLOCKS: tuple[tuple[str, str, int], ...] = (
 def _cfg_block_size(kind: str, count: int) -> int:
     if kind == 'str':
         return count
-    if kind == 'OBJ':
-        return _GAME_OBJECT_SIZE * count
-    return _FMT_SIZE[kind] * count
+    if kind in _FMT_SIZE:
+        return _FMT_SIZE[kind] * count
+    return _STRUCT_TYPES[kind][0] * count
 
 
 _CFG_TOTAL = sum(_cfg_block_size(kind, count) for _, kind, count in _CFG_BLOCKS)
@@ -326,10 +326,10 @@ _CFG_SUBFIELDS = {
     'inputStateBlock': _INPUT_STATE_BLOCK_FIELDS,
 }
 
-# The world-object pool is an array of 204-byte GameObject records (slot stride 0xCC, from
-# InitializeBuildingAndWorldPool @ 0x445740). This is the GameObject struct layout from
-# incoming.exe; a field with format 'OBJ' is decoded as an array of these records.
-_GAME_OBJECT_SIZE = 204
+# Struct record layouts from incoming.exe, used to decode the snapshot's record-pool regions. A
+# field whose format is one of these struct names (see _STRUCT_TYPES) is decoded as an array of
+# records. The world-object pool is GameObject[1700] (slot stride 0xCC, from
+# InitializeBuildingAndWorldPool @ 0x445740).
 _GAME_OBJECT_FIELDS: tuple[tuple[int, str, str, int], ...] = (
     (0x00, 'objectClassIndex', 'H', 1),
     (0x02, 'typeId', 'H', 1),
@@ -386,6 +386,28 @@ _GAME_OBJECT_FIELDS: tuple[tuple[int, str, str, int], ...] = (
     (0xc8, 'effectSlotIndex', 'H', 1),
     (0xca, 'stateFlags', 'H', 1),
 )
+# Script runtime tables: g_aScriptProcTable is ScriptProcRecord[5]; g_pScriptLabelTable is
+# ScriptLabelEntry[120]. Pointer fields are run-time addresses (not meaningful across sessions).
+_SCRIPT_PROC_FIELDS: tuple[tuple[int, str, str, int], ...] = (
+    (0x00, 'cursor', 'I', 1),
+    (0x04, 'endNode', 'I', 1),
+    (0x08, 'cursorBound', 'I', 1),
+    (0x0c, 'namePtr', 'I', 1),
+    (0x10, 'loopCount', 'I', 1),
+    (0x14, 'reserved14', 'B', 76),
+    (0x60, 'resetWord', 'I', 1),
+)
+_SCRIPT_LABEL_FIELDS: tuple[tuple[int, str, str, int], ...] = (
+    (0x00, 'tag', 'i', 1),
+    (0x04, 'namePtr', 'I', 1),
+    (0x08, 'object', 'I', 1),
+    (0x0c, 'flag', 'i', 1),
+)
+_STRUCT_TYPES: dict[str, tuple[int, tuple[tuple[int, str, str, int], ...]]] = {
+    'GameObject': (204, _GAME_OBJECT_FIELDS),
+    'ScriptProcRecord': (100, _SCRIPT_PROC_FIELDS),
+    'ScriptLabelEntry': (16, _SCRIPT_LABEL_FIELDS),
+}
 
 # Field table for the mission/level snapshot region, derived from the named globals of incoming.exe
 # in [g_nCurrentMissionId, g_nCurrentMissionId + 0x81a30). Each entry is (offset, name, format,
@@ -589,8 +611,10 @@ _SNAPSHOT_FIELDS: tuple[tuple[int, str, str, int], ...] = (
     (0x1372c, 'worldPoolGridNodeNext', 'I', 1),
     (0x137f0, 'worldPoolRecordHead', 'H', 1),
     (0x137f2, 'worldPoolRecordStateFlags', 'H', 1),
-    (0x137f4, 'worldObjectPool', 'OBJ', 1700),
+    (0x137f4, 'worldObjectPool', 'GameObject', 1700),
     (0x682a4, 'colorKeyRefCount', 'i', 30),
+    (0x6831c, 'scriptProcTable', 'ScriptProcRecord', 5),
+    (0x68510, 'scriptLabelTable', 'ScriptLabelEntry', 120),
     (0x68c90, 'missionScriptDataPool', 'B', 98304),
     (0x80c90, 'scriptDataBuffer', 'B', 32),
     (0x80cb0, 'debrisLeadVelX', 'f', 1),
@@ -664,10 +688,11 @@ def _write_json(source: Path, dest_dir: Path, obj: dict[str, Any]) -> Path:
 def _unpack(data: bytes, pos: int, fmt: str, count: int) -> Any:
     if fmt == 'str':
         return data[pos:pos + count].split(b'\x00', 1)[0].decode('latin-1')
-    if fmt == 'OBJ':
+    if fmt in _STRUCT_TYPES:
+        size, fields = _STRUCT_TYPES[fmt]
         return [
-            _decode_region(data[pos + i * _GAME_OBJECT_SIZE:pos + (i + 1) * _GAME_OBJECT_SIZE],
-                           _GAME_OBJECT_FIELDS, 0) for i in range(count)
+            _decode_region(data[pos + i * size:pos + (i + 1) * size], fields, 0)
+            for i in range(count)
         ]
     values = struct.unpack_from(f'<{count}{fmt}', data, pos)
     return values[0] if count == 1 else list(values)
