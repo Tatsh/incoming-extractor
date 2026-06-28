@@ -94,6 +94,10 @@ score statistics, frame and timer counters, lighting and fog state, the saved CD
 more). Run-time pointer fields are decoded as unsigned 32-bit words; their saved values are not
 meaningful across sessions.
 
+Across every decoded block and snapshot, field names are emitted as plain camelCase (the game's
+Hungarian prefixes are stripped); each ``*Flags`` bitfield is expanded into an object of one boolean
+per bit; and split ``*Lo``/``*Hi`` dword pairs are combined into a single 64-bit field.
+
 Dreamcast ``.TXT`` text
 -----------------------
 

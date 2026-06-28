@@ -56,9 +56,9 @@ def test_sav(tmp_path: Path) -> None:
     source.write_bytes(data)
     obj = _load(sav_to_json(source, tmp_path))
     assert obj['format'] == 'incoming-save'
-    assert obj['fields']['nCurrentMissionId'] == 605
-    assert obj['fields']['dwSnapshotCdTrack'] == 7
-    assert obj['fields']['flCameraPosX'] == pytest.approx(1.5)
+    assert obj['fields']['currentMissionId'] == 605
+    assert obj['fields']['snapshotCdTrack'] == 7
+    assert obj['fields']['cameraPosX'] == pytest.approx(1.5)
 
 
 def test_sav_unexpected_size(tmp_path: Path) -> None:
@@ -76,7 +76,7 @@ def test_xxx(tmp_path: Path) -> None:
     source.write_bytes(data)
     obj = _load(xxx_to_json(source, tmp_path))
     assert obj['format'] == 'incoming-debug-snapshot'
-    assert obj['fields']['nCurrentMissionId'] == 0x69
+    assert obj['fields']['currentMissionId'] == 0x69
 
 
 def test_lev(tmp_path: Path) -> None:
@@ -87,8 +87,8 @@ def test_lev(tmp_path: Path) -> None:
     source.write_bytes(data)
     obj = _load(lev_to_json(source, tmp_path))
     assert obj['format'] == 'incoming-level-snapshot'
-    assert obj['fields']['dwNetworkMissionFlag'] == 0xABCD
-    assert 'nCurrentMissionId' not in obj['fields']
+    assert obj['fields']['networkMissionFlag'] == 0xABCD
+    assert 'currentMissionId' not in obj['fields']
 
 
 def test_cfg(tmp_path: Path) -> None:
@@ -147,19 +147,26 @@ def test_cfg_unexpected_size(tmp_path: Path) -> None:
 
 def test_cfg_subfield_blocks(tmp_path: Path) -> None:
     data = _build_cfg()
-    struct.pack_into('<I', data, _CFG_INPUT_AXIS_OFFSET + 0x10, 100)  # dwMusicVolumeIndex
-    struct.pack_into('<f', data, _CFG_CAMERA_OFFSET, 2.0)  # flCameraPosX
+    struct.pack_into('<I', data, _CFG_INPUT_AXIS_OFFSET + 0x10, 100)  # musicVolumeIndex
+    struct.pack_into('<I', data, _CFG_INPUT_AXIS_OFFSET + 0xd0, 0x11111111)  # sessionElapsedLo
+    struct.pack_into('<I', data, _CFG_INPUT_AXIS_OFFSET + 0xd4, 0x22222222)  # sessionElapsedHi
+    struct.pack_into('<f', data, _CFG_CAMERA_OFFSET, 2.0)  # cameraPosX
     data[_CFG_INPUT_STATE_OFFSET + 0x54:_CFG_INPUT_STATE_OFFSET + 0x58] = b'HOST'
+    struct.pack_into('<I', data, _CFG_INPUT_STATE_OFFSET + 0x34, 0b101)  # netGameFlags
     data[_CFG_MISSION_SLOT_OFFSET:_CFG_MISSION_SLOT_OFFSET + 6] = b'WINNER'
     struct.pack_into('<B', data, _CFG_MISSION_SLOT_OFFSET + 0x35, 3)
     struct.pack_into('<B', data, _CFG_MISSION_SLOT_OFFSET + 0x36, 7)
     source = tmp_path / 'sub.cfg'
     source.write_bytes(data)
     blocks = _load(cfg_to_json(source, tmp_path))['blocks']
-    assert blocks['inputAxisOptions']['dwMusicVolumeIndex'] == 100
-    assert blocks['cameraState']['flCameraPosX'] == pytest.approx(2.0)
-    assert blocks['inputStateBlock']['szNetSessionName'] == 'HOST'
-    assert blocks['joystickAxisBind']['anJoystickAxisBind'] == [0] * 12
+    assert blocks['inputAxisOptions']['musicVolumeIndex'] == 100
+    assert blocks['inputAxisOptions']['sessionElapsed'] == 0x2222222211111111
+    assert blocks['cameraState']['cameraPosX'] == pytest.approx(2.0)
+    assert blocks['inputStateBlock']['netSessionName'] == 'HOST'
+    assert blocks['inputStateBlock']['netGameFlags']['bit0'] is True
+    assert blocks['inputStateBlock']['netGameFlags']['bit1'] is False
+    assert blocks['inputStateBlock']['netGameFlags']['bit2'] is True
+    assert blocks['joystickAxisBind']['joystickAxisBind'] == [0] * 44
     assert len(blocks['savedMissionSlotTable']) == 10
     assert blocks['savedMissionSlotTable'][0] == {
         'name': 'WINNER',
