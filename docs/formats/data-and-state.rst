@@ -96,8 +96,10 @@ meaningful across sessions.
 
 The largest part of a snapshot is the world-object pool, an array of 1700 204-byte ``GameObject``
 records; it is decoded as ``worldObjectPool``, a list of objects with named fields (position,
-orientation vectors, type and class ids, behaviour and effect state, lifetime, and so on). Other
-large record pools that are not yet fully reverse-engineered remain as ``unknownAt_<offset>`` arrays.
+orientation vectors, type and class ids, behaviour and effect state, lifetime, and so on). The
+128×128 world spatial grid (``worldGrid``) and the script process and label tables
+(``scriptProcTable``, ``scriptLabelTable``) are likewise decoded. A few smaller pools that are not
+yet fully reverse-engineered remain as ``unknownAt_<offset>`` arrays.
 
 Across every decoded block and snapshot, field names are emitted as plain camelCase (the game's
 Hungarian prefixes are stripped); each ``*Flags`` bitfield is expanded into an object of one boolean
