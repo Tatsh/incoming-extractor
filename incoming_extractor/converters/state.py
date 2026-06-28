@@ -99,7 +99,9 @@ _FLAG_BIT_NAMES: dict[str, dict[int, str]] = {
         1: 'inGameOverlay'
     },
     'globalStateFlags': {
-        0: 'scoreboardLayout'
+        0: 'scoreboardLayout',
+        2: 'replayCameraActive',
+        3: 'replayTrackPlayer',
     },
 }
 
