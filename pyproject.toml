@@ -45,9 +45,9 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "anyio>=4.0.0",
+  "anyio>=4.14.1",
   "bascom>=0.1.3",
-  "click>=8.4.1",
+  "click>=8.4.2",
   "pillow>=12.2.0",
   "typing-extensions>=4.15.0",
 ]
