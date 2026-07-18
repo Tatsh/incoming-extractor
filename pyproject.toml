@@ -6,9 +6,9 @@ requires = ["hatchling"]
 dev = [
   "commitizen>=4.16.4",
   "cz-path>=0.0.7",
-  "mypy>=2.1.0",
-  "ruff==0.15.20",
-  "ty>=0.0.56",
+  "mypy>=2.2.0",
+  "ruff==0.15.21",
+  "ty>=0.0.58",
   "yapf>=0.43.0",
 ]
 docs = [
