@@ -19,7 +19,7 @@ def _decode(raw: bytes) -> str:
     for encoding in ('utf-8', 'shift-jis'):
         try:
             return raw.decode(encoding)
-        except UnicodeDecodeError:  # noqa: PERF203
+        except UnicodeDecodeError:  # ruff:ignore[try-except-in-loop]
             continue
     return raw.decode('iso-8859-15')
 
