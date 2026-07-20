@@ -55,7 +55,7 @@ async def _run(source: pathlib.Path, output: Path, *, jobs: int | None,
         try:
             prepared = await asyncio.to_thread(prepare_source, source, pathlib.Path(work))
         except (SourceError, ToolNotFoundError) as e:
-            log.error('%s', e)  # noqa: TRY400
+            log.error('%s', e)  # ruff:ignore[error-instead-of-exception]
             raise click.Abort from e
         summary = await run_conversions(prepared, output, jobs=concurrency)
     click.echo(f'Converted {pluralize(summary.converted, "file")} into '
@@ -102,7 +102,7 @@ def main(source: pathlib.Path,
     Dreamcast GDI file, or a directory of already extracted PC or GD-ROM content. The source tree is
     mirrored into the output directory: recognised assets are converted and every other file is
     copied verbatim. The source is never modified.
-    """  # noqa: DOC501
+    """  # ruff:ignore[docstring-missing-exception]
     setup_logging(debug=debug, loggers={'incoming_extractor': {}})
     tools = {'gdiextract': gdiextract_path, 'spvr2png': spvr2png_path, 'unshield': unshield_path}
     if asyncio.run(_run(source, output, jobs=jobs, tools=tools)):

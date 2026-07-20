@@ -117,7 +117,7 @@ async def convert_file(source: Path, dest_dir: Path, input_root: Path,
         await asyncio.to_thread(_copy, src, dest)
         return ConversionSummary(0, 0, 1, 1, 0)
     except ConversionError as e:
-        log.error('%s', e)  # noqa: TRY400
+        log.error('%s', e)  # ruff:ignore[error-instead-of-exception]
         await asyncio.to_thread(_copy, src, dest)
         return ConversionSummary(0, 0, 1, 0, 1)
     produced = len(result) if isinstance(result, tuple) else 1
